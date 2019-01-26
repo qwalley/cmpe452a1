@@ -28,5 +28,38 @@ def loadAndNormalizeData (filename):
 	# return data in numpy array
 	return np.array(dataArray)
 
+# output of node 1 for single row of data
+def node1Predict(row, weights):
+	# TODO
+	return 1
+
+# output of node 2 for single row of data
+def node2Predict(row, weights):
+	# TODO
+	return 1
+
+# determine new weights using simple feedback learning
+def calculateNewWeights(row, prediction, weights):
+	# TODO
+	return
+
+# load training data, save final weights as files
+def trainNetwork(dataFile):
+	# TODO
+	return
+
+# load testing data and node weights, save predictions as file
+def testNetwork(dataFile, node1File, node2File):
+	# TODO
+	return
+
+# track history of weight changes by adding new row of weights...
+#  ...every learning interation
+node1Weights = [[1, 1, 1, 1, 1, 1, 1]]
+node2Weights = [[1, 1, 1, 1, 1, 1, 1]]
+
+# learning rate
+c = 0.001
+
 data = loadAndNormalizeData("trainSeeds.csv")
 print data[:10]
