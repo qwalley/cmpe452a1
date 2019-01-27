@@ -30,13 +30,21 @@ def loadAndNormalizeData (filename):
 
 # output of node 1 for single row of data
 def node1Predict(inputs, weights):
+	activation = 0
 	# TODO
-	return 1
+	threshold = 1
+	for i in range(len(weights)):
+		activation += inputs[i] * weights[i]
+	return activation >= threshold
 
 # output of node 2 for single row of data
 def node2Predict(inputs, weights):
+	activation = 0
 	# TODO
-	return 1
+	threshold = 1
+	for i in range(len(weights)):
+		activation += inputs[i] * weights[i]
+	return activation >= threshold
 
 # determine new weights using simple feedback learning
 def calculateNewWeights(inputs, y, weights):
@@ -67,7 +75,7 @@ def testNetwork(dataFile, node1File, node2File):
 	return
 
 # track history of weight changes by adding new row of weights...
-#  ...every learning interation
+#  ...every learning iteration
 node1Weights = [[1, 1, 1, 1, 1, 1, 1]]
 node2Weights = [[1, 1, 1, 1, 1, 1, 1]]
 
