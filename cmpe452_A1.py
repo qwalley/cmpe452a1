@@ -1,32 +1,29 @@
 import numpy as np
+from pprint import pprint as pprint
 
-def loadAndNormalizeData (filename):
+def loadData (filename):
 	dataArray = []
-	# store max values for each column to normalize data
-	maxValues = [0, 0, 0, 0, 0, 0, 0]
 	
 	with open(filename, "r") as file:
 		for line in file:
 			# split comma separated data and remove '\n'
 			splitLine = line[:-1].split(',')
-			numericList = [0, 0, 0, 0, 0, 0, 0, 0]
-			for i in range(7):
-				# convert string data to numeric values
-				numericList[i] = float(splitLine[i])
-				# compare each value to the current maximums
-				if numericList[i] > maxValues[i]:
-					maxValues[i] = numericList[i]
-			# store desired output as integer
-			numericList[7] = int(splitLine[7])
+			numericList = [float(val) for val in splitLine]
 			# store numeric data
 			dataArray.append(numericList)
-		# normalize data to be in range (0,1]
-		for item in dataArray:
-			for i in range(7):
-				# store values as a percentage of max value
-				item[i] = item[i] / maxValues[i]
 	# return data in numpy array
 	return np.array(dataArray)
+
+# get z-score of each data point with respect to its column
+def normalizeData (npArray):
+	mean = np.mean(npArray, axis=0)
+	stdDev = np.std(npArray, axis=0)
+
+	def normalizeRow(npRow):
+		row = [(val - mean[i]) / stdDev[i] if i < (len(npRow) - 1) else val for (i,), val in np.ndenumerate(npRow)]
+		return row
+	
+	return np.apply_along_axis(normalizeRow, axis=1, arr=npArray)
 
 # output of node 1 for single row of data
 def node1Predict(inputs, weights):
@@ -68,9 +65,12 @@ def testNetwork(dataFile, node1File, node2File):
 
 # track history of weight changes by adding new row of weights...
 #  ...every learning interation
+# make initial weights random
 node1Weights = [[1, 1, 1, 1, 1, 1, 1]]
 node2Weights = [[1, 1, 1, 1, 1, 1, 1]]
 
 
-data = loadAndNormalizeData("trainSeeds.csv")
-print data[:10]
+data = loadData("trainSeeds.csv")
+pprint(data)
+normData = normalizeData(data)
+pprint(normData)
