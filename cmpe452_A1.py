@@ -42,19 +42,11 @@ def nodePredict (inputs, weights):
 	# return tuple of (node prediction, desired output, activation)
 	return activation
 
-# might not need these....
-def node1Success(activation, d):
+# if a nodes output was correct
+def nodeSuccess(activation, d, correctOutput):
 	success = False
 	output = activation >= 0
-	correctOutput = (False, False, True)
-	return output == correctOutput[d - 1]
-
-# might not need these....
-def node2Success(activation, d):
-	success = False
-	output = activation >= 0
-	correctOutput = (False, True, False)
-	return output == correctOutput[d - 1]
+	return output == correctOutput[int(d) - 1]
 
 # determine new weights using simple feedback learning
 def calculateNewWeights(inputs, y, weights):
@@ -92,7 +84,12 @@ def trainNetwork():
 	node1Weights = [[1, 1, 1, 1, 1, 1, 1, 1]]
 	node2Weights = [[1, 1, 1, 1, 1, 1, 1, 1]]
 	
-	# store misclassifications for each node separately
+	# each correct ouput is at index (d - 1)
+	node1CorrectOutput = (False, False, True)
+	node2CorrectOutput = (False, True, False)
+
+	# store misclassifications for each node separately...
+	# ...for training purposes
 	node1Faults = []
 	node2Faults = []
 
@@ -101,18 +98,32 @@ def trainNetwork():
 	# normalize data
 	normData = normalizeData(data)
 
-	def processInput(npRow):
-		node1activation = nodePredict(npRow, node1Weights)
-		node2activation = nodePredict(npRow, node2Weights)
+	# apply a set of inputs to each node
+	# ======================================================================
+	# HAve this return the faults each iteration, for-loop will insert them
+	# ======================================================================
+	def processInput(npRow, i):
+		# calculate node outputs
+		node1activation = nodePredict(npRow, node1Weights[-1])
+		node2activation = nodePredict(npRow, node2Weights[-1])
 
-		if !node1Success(node1activation, npRow[-1]): node1Faults.append((node1activation, npRow))
-		if !node2Success(node2activation, npRow[-1]): node2Faults.append((node2activation, npRow))
+		# add inputs and outputs of misclassifications to the list of faults
+		if not nodeSuccess(node1activation, npRow[-1], node1CorrectOutput): 
+			node1Faults.append((node1activation, i))
+		if not nodeSuccess(node2activation, npRow[-1], node2CorrectOutput): 
+			node2Faults.append((node2activation, i))
 
 	# while not stopping condition
-	np.apply_along_axis(processInput, axis=1, arr=normData)
-	# TODO
+	for i in range(normData.shape[0]):
+		processInput(normData[i], i)
 	# sort faults by activation
+	node1Faults.sort(key=lambda fault: abs(fault[0]))
+	node2Faults.sort(key=lambda fault: abs(fault[0]))
+
+	for fault in node1Faults[:5]:
+		print 'fault:', fault, ' inputs:', normData[fault[1]]
 	# adjust weights using the most-correct misclassification
+	# TODO
 
 	# save weights to file
 	return
@@ -123,7 +134,7 @@ def testNetwork(dataFile, node1File, node2File):
 	return
 
 
-
+trainNetwork()
 # data = loadData("trainSeeds.csv")
 # pprint(data)
 # normData = normalizeData(data)
