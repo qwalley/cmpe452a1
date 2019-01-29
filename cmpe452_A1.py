@@ -39,36 +39,34 @@ def nodePredict (inputs, weights):
 		activation += inputs[i] * weights[i]
 	# add bias weight to activation
 	activation += threshold * weights[-1]
-	# return tuple of (node prediction, desired output, activation)
 	return activation
 
 # if a nodes output was correct
 def nodeSuccess(activation, d, correctOutput):
-	success = False
-	output = activation >= 0
+	output =  1 if activation >= 0 else 0
 	return output == correctOutput[int(d) - 1]
 
 # determine new weights using simple feedback learning
-def calculateNewWeights(inputs, y, weights):
+def calculateNewWeights(activation, correctOutput, inputs, weights):
 	# learning rate
 	c = 0.01
 	# desired output
-	d = row[len(row) - 1]
+	d = correctOutput[inputs[-1] - 1]
+	# actual output
+	y = 1 if a >= 0 else 0
 	# return value
 	newWeights = []
-	# ======================================================================
-	# FIX THIS y is [0,1] and d is [1,2,3] make this work on a per node basis
-	# ======================================================================
+
 	if y > d:
 		# adjust regular weights
 		newWeights = [weights[i] - (c * inputs[i]) for i in range(len(weights) - 1)]
 		# adjust bias weight
-		weights[-1] -= c
+		newWeights.append(weights[-1] - c)
 	elif y < d:
 		# adjust regular weights
 		newWeights = [weights[i] + (c * inputs[i]) for i in range(len(weights) - 1)]
 		# adjust bias weight
-		weights[-1] += c
+		newWeights.append(weights[-1] + c)
 	else:
 		newWeights = weights
 	
@@ -85,8 +83,8 @@ def trainNetwork():
 	node2Weights = [[1, 1, 1, 1, 1, 1, 1, 1]]
 	
 	# each correct ouput is at index (d - 1)
-	node1CorrectOutput = (False, False, True)
-	node2CorrectOutput = (False, True, False)
+	node1CorrectOutput = (0, 0, 1)
+	node2CorrectOutput = (0, 1, 0)
 
 	# load data
 	data = loadData("trainSeeds.csv")
@@ -99,12 +97,16 @@ def trainNetwork():
 		# calculate node outputs
 		node1activation = nodePredict(npRow, node1Weights[-1])
 		node2activation = nodePredict(npRow, node2Weights[-1])
-		# check each node for misclassification
+		# check each node for misclassification, npRow[-1] = d
 		if not nodeSuccess(node1activation, npRow[-1], node1CorrectOutput): 
 			faults[0] = (node1activation, i)
 		if not nodeSuccess(node2activation, npRow[-1], node2CorrectOutput): 
 			faults[1] = (node2activation, i)
 		return faults
+
+	def sortFaults(fault):
+		# sort faults using absolute value of activation
+		return abs(fault[0])
 
 	# while not stopping condition
 	
@@ -118,9 +120,9 @@ def trainNetwork():
 		if faults[0] != None: node1Faults.append(faults[0])
 		if faults[1] != None: node2Faults.append(faults[1])
 
-	# sort faults by activation
-	node1Faults.sort(key=lambda fault: abs(fault[0]))
-	node2Faults.sort(key=lambda fault: abs(fault[0]))
+	# sort faults to get lowest activation i.e closest to dividing line
+	node1Faults.sort(key=sortFaults)
+	node2Faults.sort(key=sortFaults)
 
 	for fault in node1Faults[:5]:
 		print 'fault:', fault, ' inputs:', normData[fault[1]]
