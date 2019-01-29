@@ -88,34 +88,36 @@ def trainNetwork():
 	node1CorrectOutput = (False, False, True)
 	node2CorrectOutput = (False, True, False)
 
-	# store misclassifications for each node separately...
-	# ...for training purposes
-	node1Faults = []
-	node2Faults = []
-
 	# load data
 	data = loadData("trainSeeds.csv")
 	# normalize data
 	normData = normalizeData(data)
 
 	# apply a set of inputs to each node
-	# ======================================================================
-	# HAve this return the faults each iteration, for-loop will insert them
-	# ======================================================================
 	def processInput(npRow, i):
+		faults = [None, None]
 		# calculate node outputs
 		node1activation = nodePredict(npRow, node1Weights[-1])
 		node2activation = nodePredict(npRow, node2Weights[-1])
-
-		# add inputs and outputs of misclassifications to the list of faults
+		# check each node for misclassification
 		if not nodeSuccess(node1activation, npRow[-1], node1CorrectOutput): 
-			node1Faults.append((node1activation, i))
+			faults[0] = (node1activation, i)
 		if not nodeSuccess(node2activation, npRow[-1], node2CorrectOutput): 
-			node2Faults.append((node2activation, i))
+			faults[1] = (node2activation, i)
+		return faults
 
 	# while not stopping condition
+	
+	# store misclassifications for each node separately...
+	# ...for training purposes
+	node1Faults = []
+	node2Faults = []
+	
 	for i in range(normData.shape[0]):
-		processInput(normData[i], i)
+		faults = processInput(normData[i], i)
+		if faults[0] != None: node1Faults.append(faults[0])
+		if faults[1] != None: node2Faults.append(faults[1])
+
 	# sort faults by activation
 	node1Faults.sort(key=lambda fault: abs(fault[0]))
 	node2Faults.sort(key=lambda fault: abs(fault[0]))
