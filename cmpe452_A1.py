@@ -1,4 +1,5 @@
 import numpy as np
+import random as random
 from pprint import pprint as pprint
 
 def loadData (filename):
@@ -47,13 +48,13 @@ def nodeSuccess(activation, d, correctOutput):
 	return output == correctOutput[int(d) - 1]
 
 # determine new weights using simple feedback learning
-def calculateNewWeights(activation, correctOutput, inputs, weights):
+def newWeights(activation, correctOutput, inputs, weights):
 	# learning rate
-	c = 0.01
+	c = 0.1
 	# desired output
-	d = correctOutput[inputs[-1] - 1]
+	d = correctOutput[int(inputs[-1]) - 1]
 	# actual output
-	y = 1 if a >= 0 else 0
+	y = 1 if activation >= 0 else 0
 	# return value
 	newWeights = []
 
@@ -72,19 +73,25 @@ def calculateNewWeights(activation, correctOutput, inputs, weights):
 	
 	return newWeights
 
+def randomList(lower, upper, length):
+	ret = [random.uniform(lower, upper) for i in range(length)]
+	return ret
+
 # load training data, save final weights as files
 def trainNetwork():
 	# track history of weight changes by adding new row of weights...
 	#  ...every learning iteration
-	# ======================================================================
-	# make the intial weights random
-	# ======================================================================
-	node1Weights = [[1, 1, 1, 1, 1, 1, 1, 1]]
-	node2Weights = [[1, 1, 1, 1, 1, 1, 1, 1]]
+	node1Weights = [randomList(-2, 2, 8)]
+	node2Weights = [randomList(-2, 2, 8)]
 	
 	# each correct ouput is at index (d - 1)
 	node1CorrectOutput = (0, 0, 1)
 	node2CorrectOutput = (0, 1, 0)
+
+	# error per run: # of faults / # of data rows
+	# assume 100% at run -1
+	node1Error = [1]
+	node2Error = [1]
 
 	# load data
 	data = loadData("trainSeeds.csv")
@@ -109,27 +116,44 @@ def trainNetwork():
 		return abs(fault[0])
 
 	# while not stopping condition
-	
-	# store misclassifications for each node separately...
-	# ...for training purposes
-	node1Faults = []
-	node2Faults = []
-	
-	for i in range(normData.shape[0]):
-		faults = processInput(normData[i], i)
-		if faults[0] != None: node1Faults.append(faults[0])
-		if faults[1] != None: node2Faults.append(faults[1])
+	x = 0
+	# since each node is independent, error of the...
+	# ...whole network is at most node1Error * node2Error
+	while (node1Error[-1] > 0.1) or (node2Error[-1] > 0.1):
+		# store misclassifications for each node separately...
+		# ...for training purposes
+		node1Faults = []
+		node2Faults = []
+		
+		# process trainning set
+		for i in range(normData.shape[0]):
+			faults = processInput(normData[i], i)
+			if faults[0] != None: node1Faults.append(faults[0])
+			if faults[1] != None: node2Faults.append(faults[1])
 
-	# sort faults to get lowest activation i.e closest to dividing line
-	node1Faults.sort(key=sortFaults)
-	node2Faults.sort(key=sortFaults)
+		# calculate fraction of rows that were misclassified by each node
+		node1Error.append(float(len(node1Faults)) / float(normData.shape[0]))
+		node2Error.append(float(len(node2Faults)) / float(normData.shape[0]))
 
-	for fault in node1Faults[:5]:
-		print 'fault:', fault, ' inputs:', normData[fault[1]]
-	# adjust weights using the most-correct misclassification
+		# sort faults to get lowest activation i.e closest to dividing line
+		node1Faults.sort(key=sortFaults)
+		node2Faults.sort(key=sortFaults)
+
+		print 'run', x
+		print 'Node 1 error {:4.3f}'.format(node1Error[-1]), ' Node 2 error {:4.3f}'.format(node2Error[-1])
+		x += 1
+
+		# adjust weights using the most-correct misclassification from faults list
+		node1Weights.append(newWeights(node1Faults[0][0], node1CorrectOutput, normData[node1Faults[0][1]], node1Weights[-1]))
+		node2Weights.append(newWeights(node2Faults[0][0], node2CorrectOutput, normData[node2Faults[0][1]], node2Weights[-1]))
+
 	# TODO
-
 	# save weights to file
+	print 'initial node 1 weights', node1Weights[0]
+	print 'final node 1 weights', node1Weights[-1]
+	print 'initial node 2 weights', node2Weights[0]
+	print 'final node 2 weights', node2Weights[-1]
+	
 	return
 
 # load testing data and node weights, save predictions as file
