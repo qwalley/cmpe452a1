@@ -73,9 +73,29 @@ def newWeights(activation, correctOutput, inputs, weights):
 	
 	return newWeights
 
+# generate list of random floats
 def randomList(lower, upper, length):
 	ret = [random.uniform(lower, upper) for i in range(length)]
 	return ret
+
+# save tab-delimited list to file
+def writeWeights(weights, filename):
+	line = ''
+	for w in range(len(weights) - 1):
+		line += '{:10.8f}\t'.format(weights[w])
+	line += '{:10.8f}\n'.format(weights[-1])
+
+	with open(filename, 'w') as file:
+		file.write(line)
+
+def loadWeights (filename):
+	with open(filename, "r") as file:
+		line = file.readline()
+		# split tab separated data and remove '\n'
+		splitLine = line[:-1].split('\t')
+		numericList = [float(val) for val in splitLine]
+	# return data
+	return numericList
 
 # load training data, save final weights as files
 def trainNetwork():
@@ -118,8 +138,8 @@ def trainNetwork():
 	# while not stopping condition
 	x = 0
 	# since each node is independent, error of the...
-	# ...whole network is at most node1Error * node2Error
-	while (node1Error[-1] > 0.1) or (node2Error[-1] > 0.1):
+	# ...whole network is at most node1Error + node2Error
+	while (node1Error[-1] > 0.05) or (node2Error[-1] > 0.05):
 		# store misclassifications for each node separately...
 		# ...for training purposes
 		node1Faults = []
@@ -147,23 +167,43 @@ def trainNetwork():
 		node1Weights.append(newWeights(node1Faults[0][0], node1CorrectOutput, normData[node1Faults[0][1]], node1Weights[-1]))
 		node2Weights.append(newWeights(node2Faults[0][0], node2CorrectOutput, normData[node2Faults[0][1]], node2Weights[-1]))
 
-	# TODO
 	# save weights to file
-	print 'initial node 1 weights', node1Weights[0]
-	print 'final node 1 weights', node1Weights[-1]
-	print 'initial node 2 weights', node2Weights[0]
-	print 'final node 2 weights', node2Weights[-1]
+	writeWeights(node1Weights[0], "initialNode1Weights.csv")
+	writeWeights(node1Weights[-1], "node1Weights.csv")
+	writeWeights(node2Weights[0], "initialNode2Weights.csv")
+	writeWeights(node2Weights[-1], "node2Weights.csv")
 	
 	return
 
 # load testing data and node weights, save predictions as file
-def testNetwork(dataFile, node1File, node2File):
+def testNetwork():
+	# load testing data
+	data = loadData("testSeeds.csv")
+	# normalize data
+	normData = normalizeData(data)
+	# load weights
+	node1Weights = loadWeights('node1Weights.csv')
+	node2Weights = loadWeights('node2Weights.csv')
+	# store classifications as (datapoint index, actual classification, given classification)
+	results = []
+	# classify each datapoint
+	for i in range(normData.shape[0]):
+		inputs = normData[i]
+		# determine node outputs
+		y1 = 1 if nodePredict(inputs, node1Weights) >= 0 else 0
+		y2 = 1 if nodePredict(inputs, node2Weights) >= 0 else 0
+		# determine overall classification 
+		y = 0
+		if (y1 == 0) and (y2 == 0): 
+			y = 1
+		elif (y1 == 0) and (y2 == 1): 
+			y = 2
+		elif (y1 == 1) and (y2 == 0): 
+			y = 3
+		# store classification
+		results.append((i, inputs[-1], y))
+	
 	# TODO
 	return
 
-
-trainNetwork()
-# data = loadData("trainSeeds.csv")
-# pprint(data)
-# normData = normalizeData(data)
-# pprint(normData)
+testNetwork()
