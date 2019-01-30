@@ -1,5 +1,7 @@
 import numpy as np
 import random as random
+from sklearn.linear_model import Perceptron
+from sklearn.metrics import confusion_matrix
 from pprint import pprint as pprint
 
 def loadData (filename):
@@ -136,10 +138,7 @@ def trainNetwork():
 		return abs(fault[0])
 
 	# while not stopping condition
-	x = 0
-	# since each node is independent, error of the...
-	# ...whole network is at most node1Error + node2Error
-	while (node1Error[-1] > 0.05) or (node2Error[-1] > 0.05):
+	for x in range(30):
 		# store misclassifications for each node separately...
 		# ...for training purposes
 		node1Faults = []
@@ -161,7 +160,6 @@ def trainNetwork():
 
 		print 'run', x
 		print 'Node 1 error {:4.3f}'.format(node1Error[-1]), ' Node 2 error {:4.3f}'.format(node2Error[-1])
-		x += 1
 
 		# adjust weights using the most-correct misclassification from faults list
 		node1Weights.append(newWeights(node1Faults[0][0], node1CorrectOutput, normData[node1Faults[0][1]], node1Weights[-1]))
@@ -176,11 +174,7 @@ def trainNetwork():
 	return
 
 # load testing data and node weights, save predictions as file
-def testNetwork():
-	# load testing data
-	data = loadData("testSeeds.csv")
-	# normalize data
-	normData = normalizeData(data)
+def testNetwork(normData):
 	# load weights
 	node1Weights = loadWeights('node1Weights.csv')
 	node2Weights = loadWeights('node2Weights.csv')
@@ -199,11 +193,43 @@ def testNetwork():
 		elif (y1 == 0) and (y2 == 1): 
 			y = 2
 		elif (y1 == 1) and (y2 == 0): 
-			y = 3
+			y = 3 
 		# store classification
-		results.append((i, inputs[-1], y))
-	
-	# TODO
-	return
+		results.append(y)
+	return results
 
-testNetwork()
+
+# load training data
+dataT = loadData("trainSeeds.csv")
+# normalize data
+normDataT = normalizeData(dataT)
+
+# train the scikit ANN
+clf = Perceptron(alpha=0.1, fit_intercept=False, max_iter=30, n_iter=30)
+clf.fit(normDataT[:, :-1], normDataT[:, -1])
+
+# load testing data
+data = loadData("testSeeds.csv")
+# normalize data
+normData = normalizeData(data)
+
+# get predictions from both ANNs
+skl_results = clf.predict(normData[:, :-1])
+my_results = testNetwork(normData)
+
+# created confusion matrices
+trueY = normData[:, -1]
+skl_confuse = confusion_matrix(trueY, skl_results)
+my_confuse = confusion_matrix(trueY, my_results)
+
+print('skl')
+print(skl_confuse)
+
+print('mine')
+print(my_confuse)
+
+with open('results.txt', 'w') as file:
+	file.write('actual\tmine\tscikit\n')
+	for i in range(len(trueY)):
+		line = '{:6}\t'.format(trueY[i]) + '{:4}\t'.format(my_results[i]) + '{:6}\n'.format(skl_results[i])
+		file.write(line)
